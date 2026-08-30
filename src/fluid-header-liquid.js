@@ -63,7 +63,7 @@ const DEFAULTS = {
   logoLiquidEdgeDistortion: 1,
   logoLiquidEdgeContrast: 1,
   logoLiquidEdgeBrightness: 1,
-  logoLiquidEdgeInner: 0.18,
+  logoLiquidEdgeInner: 1,
   logoLiquidEdgeAngle: 0,
   idleFps: 30,
   touchMode: 'horizontal',
@@ -390,16 +390,13 @@ float liquidEdgeMask (vec2 logoUv) {
   float upperRight = logoAlphaAt(logoUv + diagonal);
   float lowerRight = logoAlphaAt(logoUv + vec2(diagonal.x, -diagonal.y));
   float upperLeft = logoAlphaAt(logoUv + vec2(-diagonal.x, diagonal.y));
-  float dilated = max(center, max(max(left, right), max(bottom, top)));
-  dilated = max(dilated, max(max(lowerLeft, upperRight), max(lowerRight, upperLeft)));
   float eroded = min(center, min(min(left, right), min(bottom, top)));
   eroded = min(eroded, min(min(lowerLeft, upperRight), min(lowerRight, upperLeft)));
-  // Keep the approved Chrome face intact: the moving material lives primarily
-  // outside the SVG silhouette, with only a hairline kiss on the inner bevel.
-  float outerEdge = max(0.0, dilated - center);
-  float innerBevel = max(0.0, center - eroded)
+  // Keep the animated metal entirely inside the SVG silhouette so it overlays
+  // the approved chrome bevel without adding an exterior halo.
+  float innerStroke = max(0.0, center - eroded);
+  return smoothstep(0.04, 0.92, innerStroke)
     * clamp(uLogoLiquidEdgeInner, 0.0, 1.0);
-  return smoothstep(0.04, 0.92, clamp(outerEdge + innerBevel, 0.0, 1.0));
 }
 
 vec3 liquidMetalEdge (vec2 logoUv) {

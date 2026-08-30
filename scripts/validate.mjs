@@ -85,7 +85,7 @@ for (const token of [
   'logoLiquidEdgeDistortion: 1',
   'logoLiquidEdgeContrast: 1',
   'logoLiquidEdgeBrightness: 1',
-  'logoLiquidEdgeInner: 0.18',
+  'logoLiquidEdgeInner: 1',
   'logoLiquidEdgeAngle: 0',
   'liquidEdgeMask',
   'liquidMetalEdge',
@@ -129,7 +129,7 @@ for (const token of ['SR008 Banner Treatment', 'Copy Embed Code', 'Download CDN 
 const liquidBanner = await readFile('liquid-edge.html', 'utf8');
 for (const token of [
   'FluidHeaderLiquid.mount',
-  'fluid-header-liquid.min.js?v=liquid-edge-test-2',
+  'fluid-header-liquid.min.js?v=liquid-edge-test-3',
   'logoLiquidEdgeStrength: 1',
   'logoLiquidEdgeWidth: 1',
   'logoLiquidEdgeSpeed: 0.65',
@@ -137,7 +137,7 @@ for (const token of [
   'logoLiquidEdgeDistortion: 1',
   'logoLiquidEdgeContrast: 1',
   'logoLiquidEdgeBrightness: 1',
-  'logoLiquidEdgeInner: 0.18',
+  'logoLiquidEdgeInner: 1',
   'logoLiquidEdgeAngle: 0',
   'sr008-liquid-edge-config',
 ]) {
@@ -150,7 +150,7 @@ for (const token of [
   'data-edge-setting="logoLiquidEdgeWidth"',
   'data-edge-setting="logoLiquidEdgeSpeed"',
   'data-edge-setting="logoLiquidEdgeAngle"',
-  'src/liquid-edge-tuner.js?v=liquid-edge-test-2',
+  'src/liquid-edge-tuner.js?v=liquid-edge-test-3',
 ]) {
   if (!liquidPreview.includes(token)) throw new Error(`liquid-edge preview missing ${token}`);
 }
