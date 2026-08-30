@@ -8,11 +8,13 @@
   "module": "src/fluid-header.js",
   "scripts": {
     "images": "node scripts/compress-images.mjs",
-    "build": "esbuild src/fluid-header.js --bundle --format=iife --global-name=FluidHeader --target=es2020 --minify --legal-comments=inline --outfile=dist/fluid-header.min.js",
+    "build": "npm run build:production && npm run build:liquid",
+    "build:production": "esbuild src/fluid-header.js --bundle --format=iife --global-name=FluidHeader --target=es2020 --minify --legal-comments=inline --outfile=dist/fluid-header.min.js",
+    "build:liquid": "esbuild src/fluid-header-liquid.js --bundle --format=iife --global-name=FluidHeaderLiquid --target=es2020 --minify --legal-comments=inline --outfile=dist/fluid-header-liquid.min.js",
     "package-release": "node scripts/build-release.mjs",
     "release": "npm run build && npm run package-release && npm run validate",
     "validate": "node scripts/validate.mjs",
-    "check": "node --check src/fluid-header.js && node --check src/preview.js && node --check scripts/build-release.mjs && npm run build && npm run package-release && npm run validate",
+    "check": "node --check src/fluid-header.js && node --check src/fluid-header-liquid.js && node --check src/preview.js && node --check scripts/build-release.mjs && npm run build && npm run package-release && npm run validate",
     "test": "npm run check",
     "size": "npm run build && node scripts/validate.mjs",
     "serve": "python3 -m http.server 4173"

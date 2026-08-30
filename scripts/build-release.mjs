@@ -31,9 +31,12 @@ for (const directory of [
 const publicFiles = [
   ['index.html', 'index.html'],
   ['banner.html', 'banner.html'],
+  ['liquid-edge-preview.html', 'liquid-edge-preview.html'],
+  ['liquid-edge.html', 'liquid-edge.html'],
   ['src/preview.js', 'src/preview.js'],
   ['styles/preview.css', 'styles/preview.css'],
   ['dist/fluid-header.min.js', 'dist/fluid-header.min.js'],
+  ['dist/fluid-header-liquid.min.js', 'dist/fluid-header-liquid.min.js'],
   ['assets/paint-source.avif', 'assets/paint-source.avif'],
   ['assets/paint-source.webp', 'assets/paint-source.webp'],
   ['assets/paint-poster.webp', 'assets/paint-poster.webp'],

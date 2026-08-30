@@ -8,16 +8,23 @@ const required = [
   'assets/paint-poster.webp',
   'assets/sr008-wordmark.svg',
   'src/fluid-header.js',
+  'src/fluid-header-liquid.js',
   'src/preview.js',
   'dist/fluid-header.min.js',
+  'dist/fluid-header-liquid.min.js',
   'index.html',
   'banner.html',
+  'liquid-edge-preview.html',
+  'liquid-edge.html',
   'styles/preview.css',
   'wordpress/embed-snippet.html',
   'HOSTING.md',
   'docs/index.html',
   'docs/banner.html',
+  'docs/liquid-edge-preview.html',
+  'docs/liquid-edge.html',
   'docs/dist/fluid-header.min.js',
+  'docs/dist/fluid-header-liquid.min.js',
   'docs/downloads/sr008-banner-cdn.zip',
   'downloads/sr008-banner-cdn.zip',
   'release/sr008-banner-cdn.zip',
@@ -63,6 +70,19 @@ for (const removed of ['logoMode', 'logoFluidStrength']) {
   if (source.includes(removed)) throw new Error(`source still includes removed treatment code ${removed}`);
 }
 
+const liquidSource = await readFile('src/fluid-header-liquid.js', 'utf8');
+for (const token of [
+  'FluidHeaderLiquid',
+  'logoLiquidEdgeStrength: 1',
+  'logoLiquidEdgeWidth: 1',
+  'logoLiquidEdgeSpeed: 0.65',
+  'liquidEdgeMask',
+  'liquidMetalEdge',
+  'uniform float uTime',
+]) {
+  if (!liquidSource.includes(token)) throw new Error(`liquid-edge experiment missing ${token}`);
+}
+
 const banner = await readFile('banner.html', 'utf8');
 for (const token of [
   'aspect-ratio: 1800 / 430',
@@ -93,10 +113,25 @@ for (const token of ['SR008 Banner Treatment', 'Copy Embed Code', 'Download CDN 
   if (!preview.includes(token)) throw new Error(`preview missing ${token}`);
 }
 
+
+const liquidBanner = await readFile('liquid-edge.html', 'utf8');
+for (const token of [
+  'FluidHeaderLiquid.mount',
+  'fluid-header-liquid.min.js?v=liquid-edge-test-1',
+  'logoLiquidEdgeStrength: 1',
+  'logoLiquidEdgeWidth: 1',
+  'logoLiquidEdgeSpeed: 0.65',
+]) {
+  if (!liquidBanner.includes(token)) throw new Error(`liquid-edge banner missing ${token}`);
+}
+
 for (const [sourceFile, publicFile] of [
   ['index.html', 'docs/index.html'],
   ['banner.html', 'docs/banner.html'],
+  ['liquid-edge-preview.html', 'docs/liquid-edge-preview.html'],
+  ['liquid-edge.html', 'docs/liquid-edge.html'],
   ['dist/fluid-header.min.js', 'docs/dist/fluid-header.min.js'],
+  ['dist/fluid-header-liquid.min.js', 'docs/dist/fluid-header-liquid.min.js'],
 ]) {
   const [sourceBytes, publicBytes] = await Promise.all([readFile(sourceFile), readFile(publicFile)]);
   if (!sourceBytes.equals(publicBytes)) throw new Error(`${publicFile} is stale`);
@@ -104,11 +139,15 @@ for (const [sourceFile, publicFile] of [
 
 const bundle = await readFile('dist/fluid-header.min.js');
 const bundleStat = await stat('dist/fluid-header.min.js');
+const liquidBundleStat = await stat('dist/fluid-header-liquid.min.js');
 const gzipBytes = gzipSync(bundle, { level: 9 }).byteLength;
 const zipStat = await stat('release/sr008-banner-cdn.zip');
 
 if (bundleStat.size > 40 * 1024) {
   throw new Error(`bundle is ${(bundleStat.size / 1024).toFixed(1)} KB; budget is 40 KB`);
+}
+if (liquidBundleStat.size > 45 * 1024) {
+  throw new Error(`liquid-edge bundle is ${(liquidBundleStat.size / 1024).toFixed(1)} KB; budget is 45 KB`);
 }
 if (zipStat.size > 2 * 1024 * 1024) {
   throw new Error(`CDN package is ${(zipStat.size / 1024 / 1024).toFixed(1)} MB; budget is 2 MB`);
@@ -116,5 +155,6 @@ if (zipStat.size > 2 * 1024 * 1024) {
 
 console.log(`bundle: ${(bundleStat.size / 1024).toFixed(1)} KB minified`);
 console.log(`bundle: ${(gzipBytes / 1024).toFixed(1)} KB gzip`);
+console.log(`liquid-edge bundle: ${(liquidBundleStat.size / 1024).toFixed(1)} KB minified`);
 console.log(`CDN package: ${(zipStat.size / 1024 / 1024).toFixed(2)} MB`);
 console.log('validation: passed');

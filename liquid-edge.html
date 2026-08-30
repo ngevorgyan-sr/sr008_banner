@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>SR008 Liquid Metal Edge Test</title>
+  <style>
+    :root { --sr-radius-banner: 12px; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; margin: 0; background: transparent; }
+    body { overflow: hidden; }
+    #sr008-banner {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1800 / 430;
+      overflow: hidden;
+      border-radius: var(--sr-radius-banner);
+      background: transparent url("assets/paint-poster.webp") center / cover no-repeat;
+      isolation: isolate;
+    }
+    #sr008-banner canvas { display: block; }
+  </style>
+</head>
+<body>
+  <main
+    id="sr008-banner"
+    role="img"
+    aria-label="Interactive blue and gold marbled paint with a Chrome speedrun wordmark and animated liquid-metal edge"
+  ></main>
+  <script src="dist/fluid-header-liquid.min.js?v=liquid-edge-test-1"></script>
+  <script>
+    FluidHeaderLiquid.mount(document.getElementById('sr008-banner'), {
+      image: {
+        avif: 'assets/paint-source.avif',
+        webp: 'assets/paint-source.webp'
+      },
+      poster: 'assets/paint-poster.webp',
+      logo: 'assets/sr008-wordmark.svg',
+      referenceSize: { width: 1800, height: 430 },
+      sourceRect: {
+        x: 243 / 2286,
+        y: 183 / 796,
+        width: 1800 / 2286,
+        height: 430 / 796
+      },
+      velocityDissipation: 4.65,
+      viscosity: 1.5,
+      viscosityIterations: 10,
+      curl: 3.7,
+      pressure: 0.8,
+      pressureIterations: 24,
+      splatRadius: 0.28,
+      splatForce: 1500,
+      maxDistortion: 0.1,
+      restoreRate: 0.005,
+      ambient: true,
+      ambientStrength: 0.004,
+      logoWidth: 0.44,
+      logoChromeStrength: 1.8,
+      logoChromeBevel: 0.1,
+      logoChromeDepth: 0.2,
+      logoChromeBarWidth: 0.55,
+      logoChromeBarSpacing: 1,
+      logoChromeBarSlant: 0.39,
+      logoChromeBarBlur: 0.18,
+      logoChromeBlackBarAWidth: 2.78,
+      logoChromeBlackBarABlur: 1.35,
+      logoChromeBlackBarBWidth: 1.27,
+      logoChromeBlackBarBBlur: 2.55,
+      logoChromeGradientColor: '#e6edf5',
+      logoChromeGradientOpacity: 0.79,
+      logoChromeGradientWidth: 2,
+      logoChromePointer: 1.15,
+      logoLiquidEdgeStrength: 1,
+      logoLiquidEdgeWidth: 1,
+      logoLiquidEdgeSpeed: 0.65
+    });
+  </script>
+</body>
+</html>
