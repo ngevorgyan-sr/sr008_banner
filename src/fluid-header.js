@@ -41,7 +41,7 @@ const DEFAULTS = {
   logo: null,
   logoWidth: 0.44,
   logoChromeStrength: 1.8,
-  logoChromeBevel: 0.3,
+  logoChromeBevel: 0.1,
   logoChromeDepth: 0.2,
   logoChromeBarWidth: 0.55,
   logoChromeBarSpacing: 1,

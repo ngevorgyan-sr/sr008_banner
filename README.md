@@ -3,7 +3,7 @@
 Final production build of the responsive SR008 interactive paint banner. The paint uses the approved lacquer-like fluid settings and the centered wordmark uses the locked Chrome treatment with two non-repeating black reflection bars, white trailing highlights, and the approved gradient overlay.
 
 - Public preview: `https://ngevorgyan-sr.github.io/sr008_banner/`
-- Direct WordPress embed: `https://ngevorgyan-sr.github.io/sr008_banner/banner.html?v=final-4`
+- Direct WordPress embed: `https://ngevorgyan-sr.github.io/sr008_banner/banner.html?v=final-5`
 
 ## Preview
 
