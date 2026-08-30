@@ -33,7 +33,9 @@ const publicFiles = [
   ['banner.html', 'banner.html'],
   ['liquid-edge-preview.html', 'liquid-edge-preview.html'],
   ['liquid-edge.html', 'liquid-edge.html'],
+  ['src/liquid-edge-tuner.js', 'src/liquid-edge-tuner.js'],
   ['src/preview.js', 'src/preview.js'],
+  ['styles/liquid-edge-tuner.css', 'styles/liquid-edge-tuner.css'],
   ['styles/preview.css', 'styles/preview.css'],
   ['dist/fluid-header.min.js', 'dist/fluid-header.min.js'],
   ['dist/fluid-header-liquid.min.js', 'dist/fluid-header-liquid.min.js'],
@@ -42,6 +44,7 @@ const publicFiles = [
   ['assets/paint-poster.webp', 'assets/paint-poster.webp'],
   ['assets/sr008-wordmark.svg', 'assets/sr008-wordmark.svg'],
   ['assets/fonts/MessinaSans-VF-Upright.ttf', 'assets/fonts/MessinaSans-VF-Upright.ttf'],
+  ['assets/fonts/MessinaSans-CondensedRegular.ttf', 'assets/fonts/MessinaSans-CondensedRegular.ttf'],
   ['assets/fonts/MessinaSansCondensed-SemiBold.otf', 'assets/fonts/MessinaSansCondensed-SemiBold.otf'],
 ];
 

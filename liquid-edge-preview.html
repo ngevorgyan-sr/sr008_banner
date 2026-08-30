@@ -8,22 +8,7 @@
   <meta name="description" content="Experimental SR008 liquid-metal edge treatment.">
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles/preview.css?v=final-1">
-  <style>
-    .experiment-links {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-top: 24px;
-      color: var(--sr-text-secondary);
-      font-size: 14px;
-      line-height: 1.45;
-    }
-    .experiment-links a {
-      color: #000;
-      font-weight: 650;
-      text-underline-offset: 3px;
-    }
-  </style>
+  <link rel="stylesheet" href="styles/liquid-edge-tuner.css?v=liquid-edge-test-2">
 </head>
 <body>
   <main class="preview-shell">
@@ -32,20 +17,75 @@
       <p>Experimental test</p>
     </header>
 
-    <section class="preview-stage" aria-label="Experimental interactive banner preview">
+    <section class="preview-stage experiment-stage" aria-label="Experimental interactive banner preview">
       <iframe
+        id="liquid-edge-banner"
         class="banner-preview"
-        src="liquid-edge.html?v=liquid-edge-test-1"
+        src="liquid-edge.html?v=liquid-edge-test-2"
         title="SR008 animated liquid-metal edge banner test"
         loading="eager"
         scrolling="no"
       ></iframe>
     </section>
 
+    <section class="edge-tuner" aria-labelledby="edge-tuner-title">
+      <header class="edge-tuner-header">
+        <div>
+          <h2 id="edge-tuner-title">Liquid Edge Controls</h2>
+          <p>Adjust the animated edge live. The approved Chrome face and paint settings stay fixed.</p>
+        </div>
+        <div class="edge-tuner-actions">
+          <button class="sr-btn sr-btn-primary sr-btn--md" id="copy-edge-settings" type="button">Copy settings</button>
+          <button class="sr-btn sr-btn-ghost sr-btn--md" id="reset-edge-settings" type="button">Reset</button>
+        </div>
+      </header>
+
+      <div class="edge-control-grid">
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Edge thickness</span><output>1.00</output></span>
+          <input class="sr-range" type="range" min="0.1" max="3" step="0.05" value="1" data-edge-setting="logoLiquidEdgeWidth" aria-label="Edge thickness">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Edge strength</span><output>1.00</output></span>
+          <input class="sr-range" type="range" min="0" max="1.4" step="0.05" value="1" data-edge-setting="logoLiquidEdgeStrength" aria-label="Edge strength">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Inner bevel</span><output>0.18</output></span>
+          <input class="sr-range" type="range" min="0" max="1" step="0.01" value="0.18" data-edge-setting="logoLiquidEdgeInner" aria-label="Inner bevel">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Brightness</span><output>1.00</output></span>
+          <input class="sr-range" type="range" min="0.25" max="2" step="0.05" value="1" data-edge-setting="logoLiquidEdgeBrightness" aria-label="Brightness">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Contrast</span><output>1.00</output></span>
+          <input class="sr-range" type="range" min="0.25" max="3" step="0.05" value="1" data-edge-setting="logoLiquidEdgeContrast" aria-label="Contrast">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Flow scale</span><output>1.00</output></span>
+          <input class="sr-range" type="range" min="0.25" max="2.5" step="0.05" value="1" data-edge-setting="logoLiquidEdgeScale" aria-label="Flow scale">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Flow distortion</span><output>1.00</output></span>
+          <input class="sr-range" type="range" min="0" max="2.5" step="0.05" value="1" data-edge-setting="logoLiquidEdgeDistortion" aria-label="Flow distortion">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Animation speed</span><output>0.65</output></span>
+          <input class="sr-range" type="range" min="0" max="2" step="0.05" value="0.65" data-edge-setting="logoLiquidEdgeSpeed" aria-label="Animation speed">
+        </label>
+        <label class="sr-field edge-control">
+          <span class="sr-field-label"><span>Flow angle</span><output>0°</output></span>
+          <input class="sr-range" type="range" min="-180" max="180" step="1" value="0" data-edge-setting="logoLiquidEdgeAngle" data-unit="°" aria-label="Flow angle">
+        </label>
+      </div>
+      <p class="edge-tuner-status" id="edge-tuner-status" role="status" aria-live="polite"></p>
+    </section>
+
     <div class="experiment-links">
-      <span>The approved Chrome face and paint interaction are unchanged; only the logo edge is animated.</span>
+      <span>This tuner changes only the experimental liquid-metal edge.</span>
       <a href="index.html?v=final-5">View final-5</a>
     </div>
   </main>
+  <script src="src/liquid-edge-tuner.js?v=liquid-edge-test-2" defer></script>
 </body>
 </html>

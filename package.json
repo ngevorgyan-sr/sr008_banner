@@ -14,7 +14,7 @@
     "package-release": "node scripts/build-release.mjs",
     "release": "npm run build && npm run package-release && npm run validate",
     "validate": "node scripts/validate.mjs",
-    "check": "node --check src/fluid-header.js && node --check src/fluid-header-liquid.js && node --check src/preview.js && node --check scripts/build-release.mjs && npm run build && npm run package-release && npm run validate",
+    "check": "node --check src/fluid-header.js && node --check src/fluid-header-liquid.js && node --check src/liquid-edge-tuner.js && node --check src/preview.js && node --check scripts/build-release.mjs && npm run build && npm run package-release && npm run validate",
     "test": "npm run check",
     "size": "npm run build && node scripts/validate.mjs",
     "serve": "python3 -m http.server 4173"

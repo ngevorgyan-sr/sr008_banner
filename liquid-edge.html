@@ -28,9 +28,9 @@
     role="img"
     aria-label="Interactive blue and gold marbled paint with a Chrome speedrun wordmark and animated liquid-metal edge"
   ></main>
-  <script src="dist/fluid-header-liquid.min.js?v=liquid-edge-test-1"></script>
+  <script src="dist/fluid-header-liquid.min.js?v=liquid-edge-test-2"></script>
   <script>
-    FluidHeaderLiquid.mount(document.getElementById('sr008-banner'), {
+    const fluidHeader = FluidHeaderLiquid.mount(document.getElementById('sr008-banner'), {
       image: {
         avif: 'assets/paint-source.avif',
         webp: 'assets/paint-source.webp'
@@ -74,8 +74,23 @@
       logoChromePointer: 1.15,
       logoLiquidEdgeStrength: 1,
       logoLiquidEdgeWidth: 1,
-      logoLiquidEdgeSpeed: 0.65
+      logoLiquidEdgeSpeed: 0.65,
+      logoLiquidEdgeScale: 1,
+      logoLiquidEdgeDistortion: 1,
+      logoLiquidEdgeContrast: 1,
+      logoLiquidEdgeBrightness: 1,
+      logoLiquidEdgeInner: 0.18,
+      logoLiquidEdgeAngle: 0
     });
+
+    const parentOrigin = location.origin === 'null' ? '*' : location.origin;
+    addEventListener('message', (event) => {
+      if (parentOrigin !== '*' && event.origin !== parentOrigin) return;
+      if (event.data?.type !== 'sr008-liquid-edge-config') return;
+      const settings = fluidHeader.update(event.data.values);
+      event.source?.postMessage({ type: 'sr008-liquid-edge-applied', settings }, parentOrigin);
+    });
+    parent.postMessage({ type: 'sr008-liquid-edge-ready' }, parentOrigin);
   </script>
 </body>
 </html>

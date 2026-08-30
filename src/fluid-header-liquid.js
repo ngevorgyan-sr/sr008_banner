@@ -59,6 +59,12 @@ const DEFAULTS = {
   logoLiquidEdgeStrength: 1,
   logoLiquidEdgeWidth: 1,
   logoLiquidEdgeSpeed: 0.65,
+  logoLiquidEdgeScale: 1,
+  logoLiquidEdgeDistortion: 1,
+  logoLiquidEdgeContrast: 1,
+  logoLiquidEdgeBrightness: 1,
+  logoLiquidEdgeInner: 0.18,
+  logoLiquidEdgeAngle: 0,
   idleFps: 30,
   touchMode: 'horizontal',
   respectReducedMotion: true,
@@ -73,6 +79,17 @@ const MAX_SPLAT_SPACING = 0.018;
 const AMBIENT_INTERVAL = 0.1;
 const ACTIVE_WINDOW_MS = 1200;
 const MOUNTS = new WeakMap();
+const LIQUID_EDGE_KEYS = [
+  'logoLiquidEdgeStrength',
+  'logoLiquidEdgeWidth',
+  'logoLiquidEdgeSpeed',
+  'logoLiquidEdgeScale',
+  'logoLiquidEdgeDistortion',
+  'logoLiquidEdgeContrast',
+  'logoLiquidEdgeBrightness',
+  'logoLiquidEdgeInner',
+  'logoLiquidEdgeAngle',
+];
 
 const VERTEX = `#version 300 es
 in vec2 aPosition;
@@ -297,6 +314,12 @@ uniform float uLogoChromePointer;
 uniform float uLogoLiquidEdgeStrength;
 uniform float uLogoLiquidEdgeWidth;
 uniform float uLogoLiquidEdgeSpeed;
+uniform float uLogoLiquidEdgeScale;
+uniform float uLogoLiquidEdgeDistortion;
+uniform float uLogoLiquidEdgeContrast;
+uniform float uLogoLiquidEdgeBrightness;
+uniform float uLogoLiquidEdgeInner;
+uniform float uLogoLiquidEdgeAngle;
 uniform float uTime;
 in vec2 vUv;
 out vec4 outColor;
@@ -374,31 +397,38 @@ float liquidEdgeMask (vec2 logoUv) {
   // Keep the approved Chrome face intact: the moving material lives primarily
   // outside the SVG silhouette, with only a hairline kiss on the inner bevel.
   float outerEdge = max(0.0, dilated - center);
-  float innerBevel = max(0.0, center - eroded) * 0.18;
+  float innerBevel = max(0.0, center - eroded)
+    * clamp(uLogoLiquidEdgeInner, 0.0, 1.0);
   return smoothstep(0.04, 0.92, clamp(outerEdge + innerBevel, 0.0, 1.0));
 }
 
 vec3 liquidMetalEdge (vec2 logoUv) {
   float time = uTime * max(0.0, uLogoLiquidEdgeSpeed);
   vec2 pointer = (uPointer - vec2(0.5)) * vec2(0.8, 0.35);
-  vec2 point = logoUv * vec2(8.4, 3.4) + pointer;
+  float scale = max(0.15, uLogoLiquidEdgeScale);
+  float angle = uLogoLiquidEdgeAngle;
+  mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+  vec2 point = rotation * ((logoUv - 0.5) * vec2(8.4, 3.4) * scale)
+    + pointer + 0.5;
   vec2 drift = vec2(time * 0.17, -time * 0.11);
   vec2 warp = vec2(
     liquidFbm(point * 0.72 + drift),
     liquidFbm(point * 0.72 - drift + vec2(7.3, 2.1))
   );
-  float field = liquidFbm(point + (warp - 0.5) * 2.8 + drift * 0.65);
-  field += 0.24 * sin(point.x * 1.35 + point.y * 0.72 + warp.y * 5.2 - time * 0.82);
-  field += 0.16 * sin(point.x * -0.64 + point.y * 2.1 + warp.x * 4.4 + time * 0.57);
+  float distortion = max(0.0, uLogoLiquidEdgeDistortion);
+  float field = liquidFbm(point + (warp - 0.5) * 2.8 * distortion + drift * 0.65);
+  field += 0.24 * sin(point.x * 1.35 + point.y * 0.72 + warp.y * 5.2 * distortion - time * 0.82);
+  field += 0.16 * sin(point.x * -0.64 + point.y * 2.1 + warp.x * 4.4 * distortion + time * 0.57);
   float reflection = 0.5 + 0.5 * sin(field * 8.2 + time * 0.36);
   float secondary = 0.5 + 0.5 * cos(field * 13.6 - time * 0.24 + warp.x * 2.7);
   float tone = clamp(reflection * 0.72 + secondary * 0.28, 0.0, 1.0);
+  tone = clamp((tone - 0.5) * max(0.05, uLogoLiquidEdgeContrast) + 0.5, 0.0, 1.0);
 
   vec3 metal = mix(vec3(0.008, 0.012, 0.018), vec3(0.31, 0.37, 0.44), smoothstep(0.08, 0.47, tone));
   metal = mix(metal, vec3(0.92, 0.97, 1.0), smoothstep(0.47, 0.70, tone));
   metal = mix(metal, vec3(1.0), smoothstep(0.78, 0.92, tone));
   metal += vec3(0.42, 0.50, 0.62) * pow(max(0.0, 1.0 - abs(tone - 0.68) * 8.0), 2.0);
-  return clamp(metal, 0.0, 1.0);
+  return clamp(metal * max(0.0, uLogoLiquidEdgeBrightness), 0.0, 1.0);
 }
 
 vec3 chromeSurface (vec2 logoUv, vec2 canvasUv) {
@@ -647,6 +677,7 @@ export function mount (container, options = {}) {
   const instance = {
     stats,
     destroy,
+    update,
   };
 
   MOUNTS.set(container, instance);
@@ -1245,6 +1276,12 @@ export function mount (container, options = {}) {
     gl.uniform1f(program.uniforms.uLogoLiquidEdgeStrength, Math.max(0, cfg.logoLiquidEdgeStrength));
     gl.uniform1f(program.uniforms.uLogoLiquidEdgeWidth, Math.max(0, cfg.logoLiquidEdgeWidth));
     gl.uniform1f(program.uniforms.uLogoLiquidEdgeSpeed, Math.max(0, cfg.logoLiquidEdgeSpeed));
+    gl.uniform1f(program.uniforms.uLogoLiquidEdgeScale, Math.max(0.15, cfg.logoLiquidEdgeScale));
+    gl.uniform1f(program.uniforms.uLogoLiquidEdgeDistortion, Math.max(0, cfg.logoLiquidEdgeDistortion));
+    gl.uniform1f(program.uniforms.uLogoLiquidEdgeContrast, Math.max(0.05, cfg.logoLiquidEdgeContrast));
+    gl.uniform1f(program.uniforms.uLogoLiquidEdgeBrightness, Math.max(0, cfg.logoLiquidEdgeBrightness));
+    gl.uniform1f(program.uniforms.uLogoLiquidEdgeInner, Math.max(0, cfg.logoLiquidEdgeInner));
+    gl.uniform1f(program.uniforms.uLogoLiquidEdgeAngle, cfg.logoLiquidEdgeAngle * Math.PI / 180);
     gl.uniform1f(program.uniforms.uTime, (performance.now() - shaderStartTime) / 1000);
     gl.uniform2f(program.uniforms.uPointer, chromePointer.x, chromePointer.y);
     draw(program, null);
@@ -1507,6 +1544,20 @@ export function mount (container, options = {}) {
       gl = null;
       parallelExt = timerExt = null;
     }
+  }
+
+  function update (nextOptions = {}) {
+    if (!nextOptions || typeof nextOptions !== 'object' || destroyed) {
+      return Object.fromEntries(LIQUID_EDGE_KEYS.map((key) => [key, cfg[key]]));
+    }
+    for (const key of LIQUID_EDGE_KEYS) {
+      const value = Number(nextOptions[key]);
+      if (Number.isFinite(value)) cfg[key] = value;
+    }
+    const settings = Object.fromEntries(LIQUID_EDGE_KEYS.map((key) => [key, cfg[key]]));
+    stats.liquidEdgeSettings = settings;
+    if (initialized && !contextLost && !permanentFallback) render();
+    return settings;
   }
 
   function destroy () {

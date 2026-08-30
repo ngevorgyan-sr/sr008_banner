@@ -7,8 +7,10 @@ const required = [
   'assets/paint-source.webp',
   'assets/paint-poster.webp',
   'assets/sr008-wordmark.svg',
+  'assets/fonts/MessinaSans-CondensedRegular.ttf',
   'src/fluid-header.js',
   'src/fluid-header-liquid.js',
+  'src/liquid-edge-tuner.js',
   'src/preview.js',
   'dist/fluid-header.min.js',
   'dist/fluid-header-liquid.min.js',
@@ -17,12 +19,15 @@ const required = [
   'liquid-edge-preview.html',
   'liquid-edge.html',
   'styles/preview.css',
+  'styles/liquid-edge-tuner.css',
   'wordpress/embed-snippet.html',
   'HOSTING.md',
   'docs/index.html',
   'docs/banner.html',
   'docs/liquid-edge-preview.html',
   'docs/liquid-edge.html',
+  'docs/src/liquid-edge-tuner.js',
+  'docs/styles/liquid-edge-tuner.css',
   'docs/dist/fluid-header.min.js',
   'docs/dist/fluid-header-liquid.min.js',
   'docs/downloads/sr008-banner-cdn.zip',
@@ -76,9 +81,16 @@ for (const token of [
   'logoLiquidEdgeStrength: 1',
   'logoLiquidEdgeWidth: 1',
   'logoLiquidEdgeSpeed: 0.65',
+  'logoLiquidEdgeScale: 1',
+  'logoLiquidEdgeDistortion: 1',
+  'logoLiquidEdgeContrast: 1',
+  'logoLiquidEdgeBrightness: 1',
+  'logoLiquidEdgeInner: 0.18',
+  'logoLiquidEdgeAngle: 0',
   'liquidEdgeMask',
   'liquidMetalEdge',
   'uniform float uTime',
+  'update,',
 ]) {
   if (!liquidSource.includes(token)) throw new Error(`liquid-edge experiment missing ${token}`);
 }
@@ -117,12 +129,35 @@ for (const token of ['SR008 Banner Treatment', 'Copy Embed Code', 'Download CDN 
 const liquidBanner = await readFile('liquid-edge.html', 'utf8');
 for (const token of [
   'FluidHeaderLiquid.mount',
-  'fluid-header-liquid.min.js?v=liquid-edge-test-1',
+  'fluid-header-liquid.min.js?v=liquid-edge-test-2',
   'logoLiquidEdgeStrength: 1',
   'logoLiquidEdgeWidth: 1',
   'logoLiquidEdgeSpeed: 0.65',
+  'logoLiquidEdgeScale: 1',
+  'logoLiquidEdgeDistortion: 1',
+  'logoLiquidEdgeContrast: 1',
+  'logoLiquidEdgeBrightness: 1',
+  'logoLiquidEdgeInner: 0.18',
+  'logoLiquidEdgeAngle: 0',
+  'sr008-liquid-edge-config',
 ]) {
   if (!liquidBanner.includes(token)) throw new Error(`liquid-edge banner missing ${token}`);
+}
+
+const liquidPreview = await readFile('liquid-edge-preview.html', 'utf8');
+for (const token of [
+  'Liquid Edge Controls',
+  'data-edge-setting="logoLiquidEdgeWidth"',
+  'data-edge-setting="logoLiquidEdgeSpeed"',
+  'data-edge-setting="logoLiquidEdgeAngle"',
+  'src/liquid-edge-tuner.js?v=liquid-edge-test-2',
+]) {
+  if (!liquidPreview.includes(token)) throw new Error(`liquid-edge preview missing ${token}`);
+}
+
+const tuner = await readFile('src/liquid-edge-tuner.js', 'utf8');
+for (const token of ['sendSettings', 'sr008-liquid-edge-config', 'copySettings', 'reset-edge-settings']) {
+  if (!tuner.includes(token)) throw new Error(`liquid-edge tuner missing ${token}`);
 }
 
 for (const [sourceFile, publicFile] of [
@@ -130,6 +165,8 @@ for (const [sourceFile, publicFile] of [
   ['banner.html', 'docs/banner.html'],
   ['liquid-edge-preview.html', 'docs/liquid-edge-preview.html'],
   ['liquid-edge.html', 'docs/liquid-edge.html'],
+  ['src/liquid-edge-tuner.js', 'docs/src/liquid-edge-tuner.js'],
+  ['styles/liquid-edge-tuner.css', 'docs/styles/liquid-edge-tuner.css'],
   ['dist/fluid-header.min.js', 'docs/dist/fluid-header.min.js'],
   ['dist/fluid-header-liquid.min.js', 'docs/dist/fluid-header-liquid.min.js'],
 ]) {
