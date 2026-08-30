@@ -64,6 +64,7 @@ const DEFAULTS = {
   logoLiquidEdgeContrast: 1,
   logoLiquidEdgeBrightness: 1,
   logoLiquidEdgeInner: 1,
+  logoLiquidEdgeGlowOpacity: 0.35,
   logoLiquidEdgeAngle: 0,
   idleFps: 30,
   touchMode: 'horizontal',
@@ -88,6 +89,7 @@ const LIQUID_EDGE_KEYS = [
   'logoLiquidEdgeContrast',
   'logoLiquidEdgeBrightness',
   'logoLiquidEdgeInner',
+  'logoLiquidEdgeGlowOpacity',
   'logoLiquidEdgeAngle',
 ];
 
@@ -319,6 +321,7 @@ uniform float uLogoLiquidEdgeDistortion;
 uniform float uLogoLiquidEdgeContrast;
 uniform float uLogoLiquidEdgeBrightness;
 uniform float uLogoLiquidEdgeInner;
+uniform float uLogoLiquidEdgeGlowOpacity;
 uniform float uLogoLiquidEdgeAngle;
 uniform float uTime;
 in vec2 vUv;
@@ -378,9 +381,14 @@ float liquidFbm (vec2 point) {
   return value;
 }
 
-float liquidEdgeMask (vec2 logoUv) {
-  vec2 radius = uLogoTexel * (0.8 + 2.4 * max(0.0, uLogoLiquidEdgeWidth));
-  float center = logoAlphaAt(logoUv);
+void logoMorphology (
+  vec2 logoUv,
+  vec2 radius,
+  out float center,
+  out float eroded,
+  out float dilated
+) {
+  center = logoAlphaAt(logoUv);
   float left = logoAlphaAt(logoUv - vec2(radius.x, 0.0));
   float right = logoAlphaAt(logoUv + vec2(radius.x, 0.0));
   float bottom = logoAlphaAt(logoUv - vec2(0.0, radius.y));
@@ -390,13 +398,37 @@ float liquidEdgeMask (vec2 logoUv) {
   float upperRight = logoAlphaAt(logoUv + diagonal);
   float lowerRight = logoAlphaAt(logoUv + vec2(diagonal.x, -diagonal.y));
   float upperLeft = logoAlphaAt(logoUv + vec2(-diagonal.x, diagonal.y));
-  float eroded = min(center, min(min(left, right), min(bottom, top)));
+  eroded = min(center, min(min(left, right), min(bottom, top)));
   eroded = min(eroded, min(min(lowerLeft, upperRight), min(lowerRight, upperLeft)));
+  dilated = max(center, max(max(left, right), max(bottom, top)));
+  dilated = max(dilated, max(max(lowerLeft, upperRight), max(lowerRight, upperLeft)));
+}
+
+float liquidEdgeMask (vec2 logoUv) {
+  vec2 radius = uLogoTexel * (0.8 + 2.4 * max(0.0, uLogoLiquidEdgeWidth));
+  float center;
+  float eroded;
+  float dilated;
+  logoMorphology(logoUv, radius, center, eroded, dilated);
   // Keep the animated metal entirely inside the SVG silhouette so it overlays
   // the approved chrome bevel without adding an exterior halo.
   float innerStroke = max(0.0, center - eroded);
   return smoothstep(0.04, 0.92, innerStroke)
     * clamp(uLogoLiquidEdgeInner, 0.0, 1.0);
+}
+
+float liquidEdgeGlowMask (vec2 logoUv) {
+  float width = max(0.0, uLogoLiquidEdgeWidth);
+  vec2 nearRadius = uLogoTexel * (3.6 + 3.2 * width);
+  vec2 farRadius = uLogoTexel * (8.0 + 6.4 * width);
+  float center;
+  float eroded;
+  float dilated;
+  logoMorphology(logoUv, nearRadius, center, eroded, dilated);
+  float nearGlow = smoothstep(0.02, 0.88, max(0.0, dilated - eroded));
+  logoMorphology(logoUv, farRadius, center, eroded, dilated);
+  float farGlow = smoothstep(0.02, 0.92, max(0.0, dilated - eroded));
+  return clamp(nearGlow * 0.58 + farGlow * 0.22, 0.0, 1.0);
 }
 
 vec3 liquidMetalEdge (vec2 logoUv) {
@@ -527,8 +559,17 @@ void main () {
   vec3 depthColor = mix(vec3(0.008), vec3(0.14), logoUv.y * 0.24);
   color = mix(color, depthColor, extrusionOnly * 0.96);
   color = mix(color, chromeSurface(logoUv, vUv), logo.a);
+  vec3 edgeMetal = liquidMetalEdge(logoUv);
   float edge = liquidEdgeMask(logoUv) * clamp(uLogoLiquidEdgeStrength, 0.0, 1.4);
-  color = mix(color, liquidMetalEdge(logoUv), clamp(edge, 0.0, 1.0));
+  color = mix(color, edgeMetal, clamp(edge, 0.0, 1.0));
+  float edgeHighlight = smoothstep(0.58, 0.96, dot(edgeMetal, vec3(0.2126, 0.7152, 0.0722)));
+  float glow = liquidEdgeGlowMask(logoUv)
+    * edgeHighlight
+    * clamp(uLogoLiquidEdgeStrength, 0.0, 1.0)
+    * clamp(uLogoLiquidEdgeInner, 0.0, 1.0)
+    * clamp(uLogoLiquidEdgeGlowOpacity, 0.0, 1.0);
+  vec3 glowColor = mix(edgeMetal, vec3(1.0), 0.38);
+  color = 1.0 - (1.0 - color) * (1.0 - glowColor * glow);
   outColor = vec4(color, 1.0);
 }`;
 
@@ -1278,6 +1319,7 @@ export function mount (container, options = {}) {
     gl.uniform1f(program.uniforms.uLogoLiquidEdgeContrast, Math.max(0.05, cfg.logoLiquidEdgeContrast));
     gl.uniform1f(program.uniforms.uLogoLiquidEdgeBrightness, Math.max(0, cfg.logoLiquidEdgeBrightness));
     gl.uniform1f(program.uniforms.uLogoLiquidEdgeInner, Math.max(0, cfg.logoLiquidEdgeInner));
+    gl.uniform1f(program.uniforms.uLogoLiquidEdgeGlowOpacity, Math.max(0, cfg.logoLiquidEdgeGlowOpacity));
     gl.uniform1f(program.uniforms.uLogoLiquidEdgeAngle, cfg.logoLiquidEdgeAngle * Math.PI / 180);
     gl.uniform1f(program.uniforms.uTime, (performance.now() - shaderStartTime) / 1000);
     gl.uniform2f(program.uniforms.uPointer, chromePointer.x, chromePointer.y);
