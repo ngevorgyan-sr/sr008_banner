@@ -28,7 +28,7 @@
     role="img"
     aria-label="Interactive blue and gold marbled paint with a Chrome speedrun wordmark"
   ></main>
-  <script src="dist/fluid-header.min.js?v=final-1"></script>
+  <script src="dist/fluid-header.min.js?v=final-2"></script>
   <script>
     FluidHeader.mount(document.getElementById('sr008-banner'), {
       image: {
@@ -36,7 +36,42 @@
         webp: 'assets/paint-source.webp'
       },
       poster: 'assets/paint-poster.webp',
-      logo: 'assets/sr008-wordmark.svg'
+      logo: 'assets/sr008-wordmark.svg',
+      referenceSize: { width: 1800, height: 430 },
+      sourceRect: {
+        x: 243 / 2286,
+        y: 183 / 796,
+        width: 1800 / 2286,
+        height: 430 / 796
+      },
+      velocityDissipation: 4.65,
+      viscosity: 1.5,
+      viscosityIterations: 10,
+      curl: 3.7,
+      pressure: 0.8,
+      pressureIterations: 24,
+      splatRadius: 0.28,
+      splatForce: 1500,
+      maxDistortion: 0.1,
+      restoreRate: 0.005,
+      ambient: true,
+      ambientStrength: 0.004,
+      logoWidth: 0.44,
+      logoChromeStrength: 1.8,
+      logoChromeBevel: 0.4,
+      logoChromeDepth: 0.25,
+      logoChromeBarWidth: 1,
+      logoChromeBarSpacing: 1.7,
+      logoChromeBarSlant: 0.45,
+      logoChromeBarBlur: 0.18,
+      logoChromeBlackBarAWidth: 0.5,
+      logoChromeBlackBarABlur: 3,
+      logoChromeBlackBarBWidth: 0.65,
+      logoChromeBlackBarBBlur: 3,
+      logoChromeGradientColor: '#ffffff',
+      logoChromeGradientOpacity: 0.24,
+      logoChromeGradientWidth: 1,
+      logoChromePointer: 0.35
     });
   </script>
 </body>

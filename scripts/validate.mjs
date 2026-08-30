@@ -63,7 +63,23 @@ for (const removed of ['logoMode', 'logoFluidStrength']) {
 }
 
 const banner = await readFile('banner.html', 'utf8');
-for (const token of ['aspect-ratio: 1800 / 430', '--sr-radius-banner: 12px', 'border-radius: var(--sr-radius-banner)', 'background: transparent', 'FluidHeader.mount']) {
+for (const token of [
+  'aspect-ratio: 1800 / 430',
+  '--sr-radius-banner: 12px',
+  'border-radius: var(--sr-radius-banner)',
+  'background: transparent',
+  'FluidHeader.mount',
+  'v=final-2',
+  'velocityDissipation: 4.65',
+  'viscosity: 1.5',
+  'logoWidth: 0.44',
+  'logoChromeStrength: 1.8',
+  'logoChromeBlackBarAWidth: 0.5',
+  'logoChromeBlackBarBWidth: 0.65',
+  "logoChromeGradientColor: '#ffffff'",
+  'logoChromeGradientOpacity: 0.24',
+  'logoChromePointer: 0.35',
+]) {
   if (!banner.includes(token)) throw new Error(`banner missing ${token}`);
 }
 for (const removed of ['Copy Config', '>Reset<', '>Pause<', 'Logo Treatment', 'data-logo-mode']) {
