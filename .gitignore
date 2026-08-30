@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+.claude/
+versions/
+assets/*.png
+release/sr008-banner/
+/downloads/
+fluid-header-execution-plan.md

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-brand="base">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>SR008 Banner Treatment · Preview</title>
+  <meta name="description" content="Preview and embed the final SR008 interactive Chrome banner.">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles/preview.css?v=final-1">
+</head>
+<body>
+  <main class="preview-shell">
+    <header class="preview-header">
+      <h1>SR008 Banner Treatment</h1>
+      <p>Final responsive preview</p>
+    </header>
+
+    <section class="preview-stage" aria-label="Interactive banner preview">
+      <iframe
+        class="banner-preview"
+        src="banner.html"
+        title="SR008 interactive Chrome banner"
+        loading="eager"
+        scrolling="no"
+      ></iframe>
+    </section>
+
+    <section class="embed-card" aria-labelledby="embed-title">
+      <div class="embed-copy">
+        <h2 id="embed-title">WordPress Embed</h2>
+        <p>Paste this into a WordPress Custom HTML block.</p>
+      </div>
+      <pre class="embed-code"><code id="embed-code"></code></pre>
+      <div class="embed-actions">
+        <button class="copy-button" id="copy-embed" type="button">Copy Embed Code</button>
+        <a class="download-link" href="downloads/sr008-banner-cdn.zip" download>Download CDN Package</a>
+      </div>
+      <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <script src="src/preview.js?v=final-1" defer></script>
+</body>
+</html>

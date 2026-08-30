@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>SR008 Interactive Banner</title>
+  <style>
+    :root { --sr-radius-banner: 12px; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; margin: 0; background: transparent; }
+    body { overflow: hidden; }
+    #sr008-banner {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1800 / 430;
+      overflow: hidden;
+      border-radius: var(--sr-radius-banner);
+      background: transparent url("assets/paint-poster.webp") center / cover no-repeat;
+      isolation: isolate;
+    }
+    #sr008-banner canvas { display: block; }
+  </style>
+</head>
+<body>
+  <main
+    id="sr008-banner"
+    role="img"
+    aria-label="Interactive blue and gold marbled paint with a Chrome speedrun wordmark"
+  ></main>
+  <script src="dist/fluid-header.min.js?v=final-1"></script>
+  <script>
+    FluidHeader.mount(document.getElementById('sr008-banner'), {
+      image: {
+        avif: 'assets/paint-source.avif',
+        webp: 'assets/paint-source.webp'
+      },
+      poster: 'assets/paint-poster.webp',
+      logo: 'assets/sr008-wordmark.svg'
+    });
+  </script>
+</body>
+</html>
