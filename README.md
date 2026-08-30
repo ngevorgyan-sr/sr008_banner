@@ -1,9 +1,9 @@
 # SR008 Banner Treatment
 
-Final production build of the responsive SR008 interactive paint banner. The paint uses the approved lacquer-like fluid settings and the centered wordmark uses the locked Chrome treatment with two non-repeating black reflection bars, white trailing highlights, and the approved gradient overlay.
+Final production build of the responsive SR008 interactive paint banner. The paint uses the approved lacquer-like fluid settings and the centered wordmark uses the locked Chrome treatment with two non-repeating black reflection bars, white trailing highlights, the approved gradient overlay, and an animated liquid-metal inner edge with highlight glow.
 
 - Public preview: `https://ngevorgyan-sr.github.io/sr008_banner/`
-- Direct WordPress embed: `https://ngevorgyan-sr.github.io/sr008_banner/banner.html?v=final-5`
+- Direct WordPress embed: `https://ngevorgyan-sr.github.io/sr008_banner/banner.html?v=final-6`
 
 ## Preview
 
@@ -21,7 +21,7 @@ The preview contains only the final banner, a copyable WordPress iframe embed, a
 ## Production Files
 
 - `banner.html` — responsive, transparent, rounded iframe document.
-- `dist/fluid-header.min.js` — optimized Chrome-only WebGL runtime.
+- `dist/fluid-header.min.js` — optimized Chrome and liquid-metal-edge WebGL runtime.
 - `assets/paint-source.avif` and `.webp` — optimized paint texture.
 - `assets/paint-poster.webp` — fallback poster.
 - `assets/sr008-wordmark.svg` — logo mask.

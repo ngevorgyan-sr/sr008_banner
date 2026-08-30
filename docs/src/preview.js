@@ -4,10 +4,10 @@
   const code = document.getElementById('embed-code');
   const button = document.getElementById('copy-embed');
   const status = document.getElementById('copy-status');
-  const bannerUrl = new URL('banner.html?v=final-5', window.location.href).href.split('#')[0];
+  const bannerUrl = new URL('banner.html?v=final-6', window.location.href).href.split('#')[0];
   const embed = `<iframe
   src="${bannerUrl}"
-  title="SR008 interactive Chrome banner"
+  title="SR008 interactive Chrome banner with animated liquid-metal edge"
   loading="eager"
   scrolling="no"
   style="display:block;width:100%;aspect-ratio:1800/430;border:0;border-radius:12px;overflow:hidden;background:transparent"

@@ -7,7 +7,7 @@ The production embed is a self-contained iframe page. It expands to the width of
 The repository's `docs/` folder is ready to publish with GitHub Pages. In GitHub, open **Settings → Pages**, choose **Deploy from a branch**, then select the `main` branch and `/docs` folder.
 
 - Public preview: `https://ngevorgyan-sr.github.io/sr008_banner/`
-- Direct embed: `https://ngevorgyan-sr.github.io/sr008_banner/banner.html?v=final-5`
+- Direct embed: `https://ngevorgyan-sr.github.io/sr008_banner/banner.html?v=final-6`
 
 ## Hosting on a CDN
 

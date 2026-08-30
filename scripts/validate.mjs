@@ -67,6 +67,20 @@ for (const token of [
   'chromeSurface',
   'whiteTrailA',
   'whiteTrailB',
+  'logoLiquidEdgeStrength: 1.4',
+  'logoLiquidEdgeWidth: 0.1',
+  'logoLiquidEdgeSpeed: 1.65',
+  'logoLiquidEdgeScale: 0.75',
+  'logoLiquidEdgeDistortion: 0.85',
+  'logoLiquidEdgeContrast: 0.25',
+  'logoLiquidEdgeBrightness: 2',
+  'logoLiquidEdgeInner: 0.66',
+  'logoLiquidEdgeGlowOpacity: 0.33',
+  'logoLiquidEdgeAngle: -65',
+  'liquidEdgeMask',
+  'liquidEdgeGlowMask',
+  'liquidMetalEdge',
+  'uniform float uTime',
 ]) {
   if (!source.includes(token)) throw new Error(`source missing locked production feature ${token}`);
 }
@@ -104,7 +118,7 @@ for (const token of [
   'border-radius: var(--sr-radius-banner)',
   'background: transparent',
   'FluidHeader.mount',
-  'v=final-5',
+  'v=final-6',
   'velocityDissipation: 4.65',
   'viscosity: 1.5',
   'logoWidth: 0.44',
@@ -115,6 +129,16 @@ for (const token of [
   "logoChromeGradientColor: '#e6edf5'",
   'logoChromeGradientOpacity: 0.79',
   'logoChromePointer: 1.15',
+  'logoLiquidEdgeStrength: 1.4',
+  'logoLiquidEdgeWidth: 0.1',
+  'logoLiquidEdgeSpeed: 1.65',
+  'logoLiquidEdgeScale: 0.75',
+  'logoLiquidEdgeDistortion: 0.85',
+  'logoLiquidEdgeContrast: 0.25',
+  'logoLiquidEdgeBrightness: 2',
+  'logoLiquidEdgeInner: 0.66',
+  'logoLiquidEdgeGlowOpacity: 0.33',
+  'logoLiquidEdgeAngle: -65',
 ]) {
   if (!banner.includes(token)) throw new Error(`banner missing ${token}`);
 }
@@ -123,8 +147,13 @@ for (const removed of ['Copy Config', '>Reset<', '>Pause<', 'Logo Treatment', 'd
 }
 
 const preview = await readFile('index.html', 'utf8');
-for (const token of ['SR008 Banner Treatment', 'Copy Embed Code', 'Download CDN Package', 'banner.html']) {
+for (const token of ['SR008 Banner Treatment', 'Copy Embed Code', 'Download CDN Package', 'banner.html?v=final-6']) {
   if (!preview.includes(token)) throw new Error(`preview missing ${token}`);
+}
+
+const wordpressEmbed = await readFile('wordpress/embed-snippet.html', 'utf8');
+if (!wordpressEmbed.includes('banner.html?v=final-6')) {
+  throw new Error('WordPress embed is not pinned to final-6');
 }
 
 
@@ -184,8 +213,8 @@ const liquidBundleStat = await stat('dist/fluid-header-liquid.min.js');
 const gzipBytes = gzipSync(bundle, { level: 9 }).byteLength;
 const zipStat = await stat('release/sr008-banner-cdn.zip');
 
-if (bundleStat.size > 40 * 1024) {
-  throw new Error(`bundle is ${(bundleStat.size / 1024).toFixed(1)} KB; budget is 40 KB`);
+if (bundleStat.size > 42 * 1024) {
+  throw new Error(`bundle is ${(bundleStat.size / 1024).toFixed(1)} KB; budget is 42 KB`);
 }
 if (liquidBundleStat.size > 45 * 1024) {
   throw new Error(`liquid-edge bundle is ${(liquidBundleStat.size / 1024).toFixed(1)} KB; budget is 45 KB`);
