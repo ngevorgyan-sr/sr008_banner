@@ -69,6 +69,7 @@ const DEFAULTS = {
   touchMode: 'horizontal',
   respectReducedMotion: true,
   fadeMs: 300,
+  debug: false,
   onReady: null,
   onFallback: null,
 };
@@ -282,6 +283,7 @@ uniform vec2 uSourceScale;
 uniform vec2 uSourceTexel;
 uniform vec2 uPointer;
 uniform vec2 uLogoTexel;
+uniform float uHasLogo;
 uniform float uCanvasAspect;
 uniform float uLogoAspect;
 uniform float uLogoWidth;
@@ -530,6 +532,11 @@ void main () {
   vec2 halfTexel = uSourceTexel * 0.5;
   sourceUv = clamp(sourceUv, halfTexel, 1.0 - halfTexel);
   vec3 color = texture(uSource, sourceUv).rgb;
+  // Uniform branch: paint-in-type mounts (no logo) skip every logo tap.
+  if (uHasLogo < 0.5) {
+    outColor = vec4(color, 1.0);
+    return;
+  }
   vec2 logoUv;
   vec4 logo = sampleLogo(vUv, logoUv);
   vec2 depthStep = uLogoTexel * vec2(1.35, 2.15) * max(0.0, uLogoChromeDepth);
@@ -649,6 +656,7 @@ export function mount (container, options = {}) {
   let sourceImage = null;
   let logoTexture = null;
   let logoImage = null;
+  let logoRasterWidth = 0;
   let velocity = null;
   let pressure = null;
   let divergence = null;
@@ -665,6 +673,7 @@ export function mount (container, options = {}) {
   let pendingQuery = null;
   let contextRestoreAttempts = 0;
   let contextLost = false;
+  let contextGeneration = 0;
   let initialized = false;
   let initializing = false;
   let inView = false;
@@ -799,9 +808,10 @@ export function mount (container, options = {}) {
       stats.logoUrl = logoImage ? logoImage.currentSrc || logoImage.src : null;
       stats.logoStatus = logoImage ? 'ready' : cfg.logo ? 'unavailable' : 'disabled';
       uploadSource(sourceImage);
-      uploadLogo(logoImage);
       sizeCanvas();
+      uploadLogo(logoImage);
       allocateFields();
+      uploadDisplayUniforms();
       render();
       initialized = true;
       initializing = false;
@@ -817,7 +827,11 @@ export function mount (container, options = {}) {
     } catch (error) {
       initializing = false;
       const message = String(error?.message || '').toLowerCase();
-      notifyFallback(message.includes('load') || message.includes('image') ? 'image' : 'webgl2', error);
+      notifyFallback(
+        message.includes('context lost') ? 'context-lost'
+          : message.includes('load') || message.includes('image') ? 'image' : 'webgl2',
+        error,
+      );
     }
   }
 
@@ -852,7 +866,9 @@ export function mount (container, options = {}) {
     if (!gl) throw new Error('webgl2 unavailable');
     if (!gl.getExtension('EXT_color_buffer_float')) throw new Error('half-float render targets unavailable');
     parallelExt = gl.getExtension('KHR_parallel_shader_compile');
-    timerExt = gl.getExtension('EXT_disjoint_timer_query_webgl2');
+    // GPU timing costs a query plus a synchronous GPU_DISJOINT read per frame;
+    // it only feeds stats.gpuTimeMs, so it is opt-in via `debug: true`.
+    timerExt = cfg.debug ? gl.getExtension('EXT_disjoint_timer_query_webgl2') : null;
     gl.disable(gl.BLEND);
     gl.disable(gl.DEPTH_TEST);
     gl.clearColor(0, 0, 0, 0);
@@ -911,6 +927,7 @@ export function mount (container, options = {}) {
   }
 
   async function createPrograms () {
+    const generation = contextGeneration;
     const vertexShader = compileShader(gl.VERTEX_SHADER, VERTEX);
     const sources = {
       clear: CLEAR_FRAG,
@@ -932,6 +949,11 @@ export function mount (container, options = {}) {
     if (parallelExt) {
       let complete = false;
       while (!complete) {
+        // A lost context answers null forever, and a restored one owns new
+        // programs; either way this compile is dead, so stop polling.
+        if (destroyed || !gl || generation !== contextGeneration || gl.isContextLost()) {
+          throw new Error('webgl2 context lost during shader compile');
+        }
         complete = Object.values(result).every((item) =>
           gl.getProgramParameter(item.program, parallelExt.COMPLETION_STATUS_KHR));
         if (!complete) await new Promise(requestAnimationFrame);
@@ -971,6 +993,54 @@ export function mount (container, options = {}) {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
   }
 
+  // Device-pixel width the wordmark covers on the canvas.
+  function logoDisplayWidth () {
+    return Math.min(0.9, Math.max(0.05, cfg.logoWidth)) * canvas.width;
+  }
+
+  // SVG wordmarks are rasterised at max(2x intrinsic, displayed width) so the
+  // chrome stays crisp instead of being magnified from the SVG's 651px size.
+  // Effect widths stay in intrinsic texels (uLogoTexel), so the bevel and
+  // liquid edge keep the same proportion of the logo at any raster size.
+  function logoUploadSource (image) {
+    logoRasterWidth = 0;
+    const src = image.currentSrc || image.src || '';
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+    if (!/^data:image\/svg|\.svg([?#]|$)/i.test(src) || !naturalWidth || !naturalHeight) return image;
+    const maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+    const width = Math.min(
+      maxTexture,
+      Math.ceil(Math.max(naturalWidth * 2, logoDisplayWidth())),
+      Math.floor(maxTexture * naturalWidth / naturalHeight),
+    );
+    const raster = document.createElement('canvas');
+    raster.width = width;
+    raster.height = Math.max(1, Math.round(width * naturalHeight / naturalWidth));
+    raster.getContext('2d').drawImage(image, 0, 0, raster.width, raster.height);
+    logoRasterWidth = width;
+    return raster;
+  }
+
+  function logoNeedsRaster () {
+    if (!logoImage || !logoRasterWidth) return false;
+    const target = Math.max(logoImage.naturalWidth * 2, logoDisplayWidth());
+    return Math.abs(target - logoRasterWidth) / logoRasterWidth > 0.25;
+  }
+
+  // Plain bilinear stays sharpest while the raster is minified by 2x or less
+  // (the reference banner is ~1.4x); past that, trilinear mipmaps keep small
+  // canvases from aliasing the wordmark edges.
+  function updateLogoFilter () {
+    if (!logoRasterWidth) return;
+    gl.bindTexture(gl.TEXTURE_2D, logoTexture);
+    gl.texParameteri(
+      gl.TEXTURE_2D,
+      gl.TEXTURE_MIN_FILTER,
+      logoRasterWidth > logoDisplayWidth() * 2 ? gl.LINEAR_MIPMAP_LINEAR : gl.LINEAR,
+    );
+  }
+
   function uploadLogo (image) {
     if (logoTexture) gl.deleteTexture(logoTexture);
     logoTexture = gl.createTexture();
@@ -982,7 +1052,17 @@ export function mount (container, options = {}) {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     if (image) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      try {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, logoUploadSource(image));
+      } catch (_) {
+        // A canvas the browser refuses to read back: upload the image as-is.
+        logoRasterWidth = 0;
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      }
+      if (logoRasterWidth) {
+        gl.generateMipmap(gl.TEXTURE_2D);
+        updateLogoFilter();
+      }
     } else {
       gl.texImage2D(
         gl.TEXTURE_2D,
@@ -1095,15 +1175,25 @@ export function mount (container, options = {}) {
     return changed;
   }
 
+  // Field sizes depend only on the canvas aspect, so a same-aspect resize
+  // keeps the simulation (and the paint's current stir) intact.
   function allocateFields () {
-    releaseFields();
     const sim = fieldSize(cfg.simResolution, canvas.width, canvas.height);
     const flowSize = fieldSize(cfg.flowResolution, canvas.width, canvas.height);
-    velocity = createDoubleFbo(sim.width, sim.height, gl.LINEAR);
-    pressure = createDoubleFbo(sim.width, sim.height, gl.NEAREST);
-    divergence = createFbo(sim.width, sim.height, gl.NEAREST);
-    curlField = createFbo(sim.width, sim.height, gl.NEAREST);
-    flow = createDoubleFbo(flowSize.width, flowSize.height, gl.LINEAR);
+    if (!velocity || velocity.width !== sim.width || velocity.height !== sim.height) {
+      velocity?.release();
+      pressure?.release();
+      deleteFbo(divergence);
+      deleteFbo(curlField);
+      velocity = createDoubleFbo(sim.width, sim.height, gl.LINEAR);
+      pressure = createDoubleFbo(sim.width, sim.height, gl.NEAREST);
+      divergence = createFbo(sim.width, sim.height, gl.NEAREST);
+      curlField = createFbo(sim.width, sim.height, gl.NEAREST);
+    }
+    if (!flow || flow.width !== flowSize.width || flow.height !== flowSize.height) {
+      flow?.release();
+      flow = createDoubleFbo(flowSize.width, flowSize.height, gl.LINEAR);
+    }
     stats.simWidth = sim.width;
     stats.simHeight = sim.height;
     stats.flowWidth = flowSize.width;
@@ -1256,57 +1346,69 @@ export function mount (container, options = {}) {
     flow.swap();
   }
 
-  function render () {
+  // Uniforms are program state: everything that only changes with options,
+  // textures or canvas size is uploaded here (after program creation, a
+  // resize, a logo re-raster or update()), not on every frame.
+  function uploadDisplayUniforms () {
     const program = programs.display;
+    const uniforms = program.uniforms;
     const rect = cfg.sourceRect;
     program.bind();
-    gl.uniform1i(program.uniforms.uFlow, flow.read.attach(0));
-    gl.uniform1i(program.uniforms.uSource, attachTexture(sourceTexture, 1));
-    gl.uniform1i(program.uniforms.uLogo, attachTexture(logoTexture, 2));
-    gl.uniform2f(program.uniforms.uSourceMin, rect.x, rect.y);
-    gl.uniform2f(program.uniforms.uSourceScale, rect.width, rect.height);
+    gl.uniform1i(uniforms.uFlow, 0);
+    gl.uniform1i(uniforms.uSource, 1);
+    gl.uniform1i(uniforms.uLogo, 2);
+    gl.uniform2f(uniforms.uSourceMin, rect.x, rect.y);
+    gl.uniform2f(uniforms.uSourceScale, rect.width, rect.height);
     gl.uniform2f(
-      program.uniforms.uSourceTexel,
+      uniforms.uSourceTexel,
       1 / sourceImage.naturalWidth,
       1 / sourceImage.naturalHeight,
     );
+    gl.uniform1f(uniforms.uHasLogo, logoImage ? 1 : 0);
     gl.uniform2f(
-      program.uniforms.uLogoTexel,
+      uniforms.uLogoTexel,
       logoImage ? 1 / Math.max(logoImage.naturalWidth, 1) : 1,
       logoImage ? 1 / Math.max(logoImage.naturalHeight, 1) : 1,
     );
-    gl.uniform1f(program.uniforms.uCanvasAspect, canvas.width / Math.max(canvas.height, 1));
+    gl.uniform1f(uniforms.uCanvasAspect, canvas.width / Math.max(canvas.height, 1));
     gl.uniform1f(
-      program.uniforms.uLogoAspect,
+      uniforms.uLogoAspect,
       logoImage ? logoImage.naturalWidth / Math.max(logoImage.naturalHeight, 1) : 1,
     );
-    gl.uniform1f(program.uniforms.uLogoWidth, Math.min(0.9, Math.max(0.05, cfg.logoWidth)));
-    gl.uniform1f(program.uniforms.uLogoChromeStrength, Math.max(0, cfg.logoChromeStrength));
-    gl.uniform1f(program.uniforms.uLogoChromeBevel, Math.max(0, cfg.logoChromeBevel));
-    gl.uniform1f(program.uniforms.uLogoChromeDepth, Math.max(0, cfg.logoChromeDepth));
-    gl.uniform1f(program.uniforms.uLogoChromeBarWidth, Math.max(0.1, cfg.logoChromeBarWidth));
-    gl.uniform1f(program.uniforms.uLogoChromeBarSpacing, Math.max(0.1, cfg.logoChromeBarSpacing));
-    gl.uniform1f(program.uniforms.uLogoChromeBarSlant, cfg.logoChromeBarSlant);
-    gl.uniform1f(program.uniforms.uLogoChromeBarBlur, Math.max(0, cfg.logoChromeBarBlur));
-    gl.uniform1f(program.uniforms.uLogoChromeBlackBarAWidth, Math.max(0.005, cfg.logoChromeBlackBarAWidth));
-    gl.uniform1f(program.uniforms.uLogoChromeBlackBarABlur, Math.max(0, cfg.logoChromeBlackBarABlur));
-    gl.uniform1f(program.uniforms.uLogoChromeBlackBarBWidth, Math.max(0.005, cfg.logoChromeBlackBarBWidth));
-    gl.uniform1f(program.uniforms.uLogoChromeBlackBarBBlur, Math.max(0, cfg.logoChromeBlackBarBBlur));
-    const gradientColor = parseHexColor(cfg.logoChromeGradientColor);
-    gl.uniform3f(program.uniforms.uLogoChromeGradientColor, ...gradientColor);
-    gl.uniform1f(program.uniforms.uLogoChromeGradientOpacity, Math.max(0, cfg.logoChromeGradientOpacity));
-    gl.uniform1f(program.uniforms.uLogoChromeGradientWidth, Math.max(0.01, cfg.logoChromeGradientWidth));
-    gl.uniform1f(program.uniforms.uLogoChromePointer, Math.max(0, cfg.logoChromePointer));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeStrength, Math.max(0, cfg.logoLiquidEdgeStrength));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeWidth, Math.max(0, cfg.logoLiquidEdgeWidth));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeSpeed, Math.max(0, cfg.logoLiquidEdgeSpeed));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeScale, Math.max(0.15, cfg.logoLiquidEdgeScale));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeDistortion, Math.max(0, cfg.logoLiquidEdgeDistortion));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeContrast, Math.max(0.05, cfg.logoLiquidEdgeContrast));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeBrightness, Math.max(0, cfg.logoLiquidEdgeBrightness));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeInner, Math.max(0, cfg.logoLiquidEdgeInner));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeGlowOpacity, Math.max(0, cfg.logoLiquidEdgeGlowOpacity));
-    gl.uniform1f(program.uniforms.uLogoLiquidEdgeAngle, cfg.logoLiquidEdgeAngle * Math.PI / 180);
+    gl.uniform1f(uniforms.uLogoWidth, Math.min(0.9, Math.max(0.05, cfg.logoWidth)));
+    gl.uniform1f(uniforms.uLogoChromeStrength, Math.max(0, cfg.logoChromeStrength));
+    gl.uniform1f(uniforms.uLogoChromeBevel, Math.max(0, cfg.logoChromeBevel));
+    gl.uniform1f(uniforms.uLogoChromeDepth, Math.max(0, cfg.logoChromeDepth));
+    gl.uniform1f(uniforms.uLogoChromeBarWidth, Math.max(0.1, cfg.logoChromeBarWidth));
+    gl.uniform1f(uniforms.uLogoChromeBarSpacing, Math.max(0.1, cfg.logoChromeBarSpacing));
+    gl.uniform1f(uniforms.uLogoChromeBarSlant, cfg.logoChromeBarSlant);
+    gl.uniform1f(uniforms.uLogoChromeBarBlur, Math.max(0, cfg.logoChromeBarBlur));
+    gl.uniform1f(uniforms.uLogoChromeBlackBarAWidth, Math.max(0.005, cfg.logoChromeBlackBarAWidth));
+    gl.uniform1f(uniforms.uLogoChromeBlackBarABlur, Math.max(0, cfg.logoChromeBlackBarABlur));
+    gl.uniform1f(uniforms.uLogoChromeBlackBarBWidth, Math.max(0.005, cfg.logoChromeBlackBarBWidth));
+    gl.uniform1f(uniforms.uLogoChromeBlackBarBBlur, Math.max(0, cfg.logoChromeBlackBarBBlur));
+    gl.uniform1f(uniforms.uLogoChromeGradientOpacity, Math.max(0, cfg.logoChromeGradientOpacity));
+    gl.uniform1f(uniforms.uLogoChromeGradientWidth, Math.max(0.01, cfg.logoChromeGradientWidth));
+    gl.uniform1f(uniforms.uLogoChromePointer, Math.max(0, cfg.logoChromePointer));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeStrength, Math.max(0, cfg.logoLiquidEdgeStrength));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeWidth, Math.max(0, cfg.logoLiquidEdgeWidth));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeSpeed, Math.max(0, cfg.logoLiquidEdgeSpeed));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeScale, Math.max(0.15, cfg.logoLiquidEdgeScale));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeDistortion, Math.max(0, cfg.logoLiquidEdgeDistortion));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeContrast, Math.max(0.05, cfg.logoLiquidEdgeContrast));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeBrightness, Math.max(0, cfg.logoLiquidEdgeBrightness));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeInner, Math.max(0, cfg.logoLiquidEdgeInner));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeGlowOpacity, Math.max(0, cfg.logoLiquidEdgeGlowOpacity));
+    gl.uniform1f(uniforms.uLogoLiquidEdgeAngle, cfg.logoLiquidEdgeAngle * Math.PI / 180);
+    gl.uniform3f(uniforms.uLogoChromeGradientColor, ...parseHexColor(cfg.logoChromeGradientColor));
+  }
+
+  function render () {
+    const program = programs.display;
+    program.bind();
+    flow.read.attach(0);
+    attachTexture(sourceTexture, 1);
+    attachTexture(logoTexture, 2);
     gl.uniform1f(program.uniforms.uTime, (performance.now() - shaderStartTime) / 1000);
     gl.uniform2f(program.uniforms.uPointer, chromePointer.x, chromePointer.y);
     draw(program, null);
@@ -1407,14 +1509,25 @@ export function mount (container, options = {}) {
     else stopLoop();
   }
 
+  // A display:none container reports 0x0. Treat that as "no size" rather
+  // than resizing to the reference fallback, which would wipe the paint and
+  // then wipe it again when the container is shown.
+  function containerHidden () {
+    const rect = container.getBoundingClientRect();
+    return !rect.width || !rect.height;
+  }
+
   function scheduleResize () {
-    if (resizeRaf || !initialized || destroyed) return;
+    if (resizeRaf || !initialized || destroyed || containerHidden()) return;
     resizeRaf = requestAnimationFrame(() => {
       resizeRaf = 0;
-      if (!initialized || contextLost || permanentFallback) return;
+      if (!initialized || contextLost || permanentFallback || containerHidden()) return;
       try {
         if (sizeCanvas()) {
           allocateFields();
+          if (logoNeedsRaster()) uploadLogo(logoImage);
+          else updateLogoFilter();
+          uploadDisplayUniforms();
           render();
         }
       } catch (error) {
@@ -1437,8 +1550,7 @@ export function mount (container, options = {}) {
       Boolean(event.target.closest('a,button,input,select,textarea,[contenteditable="true"]'));
   }
 
-  function pointerSample (event) {
-    const rect = container.getBoundingClientRect();
+  function pointerSample (event, rect) {
     return {
       x: (event.clientX - rect.left) / Math.max(rect.width, 1),
       y: 1 - (event.clientY - rect.top) / Math.max(rect.height, 1),
@@ -1450,13 +1562,15 @@ export function mount (container, options = {}) {
 
   function handlePointerStart (event) {
     if (interactiveTarget(event)) return;
-    const sample = pointerSample(event);
+    const sample = pointerSample(event, container.getBoundingClientRect());
     pointers.set(event.pointerId, { ...sample, emaX: 0, emaY: 0 });
   }
 
   function handlePointerMove (event) {
     if (permanentFallback || contextLost || interactiveTarget(event)) return;
-    const hoverSample = pointerSample(event);
+    // One layout read per event, shared by every coalesced sample.
+    const rect = container.getBoundingClientRect();
+    const hoverSample = pointerSample(event, rect);
     chromePointer.x = hoverSample.x;
     chromePointer.y = hoverSample.y;
     if (!initialized) return;
@@ -1465,12 +1579,14 @@ export function mount (container, options = {}) {
     const samples = typeof event.getCoalescedEvents === 'function'
       ? event.getCoalescedEvents()
       : [event];
-    for (const sampleEvent of samples) processPointerSample(event.pointerId, event.pointerType, sampleEvent);
+    for (const sampleEvent of samples) {
+      processPointerSample(event.pointerId, event.pointerType, sampleEvent, rect);
+    }
   }
 
-  function processPointerSample (pointerId, pointerType, event) {
+  function processPointerSample (pointerId, pointerType, event, rect) {
     if (pointerType === 'touch' && cfg.touchMode === 'ambient') return;
-    const sample = pointerSample(event);
+    const sample = pointerSample(event, rect);
     let previous = pointers.get(pointerId);
     if (!previous) {
       pointers.set(pointerId, { ...sample, emaX: 0, emaY: 0 });
@@ -1522,6 +1638,7 @@ export function mount (container, options = {}) {
   function onContextLost (event) {
     event.preventDefault();
     contextLost = true;
+    contextGeneration++;
     stats.status = 'context-lost';
     stopLoop();
     if (canvas) canvas.style.opacity = '0';
@@ -1540,9 +1657,10 @@ export function mount (container, options = {}) {
       createQuad();
       programs = await createPrograms();
       uploadSource(sourceImage);
-      uploadLogo(logoImage);
       sizeCanvas();
+      uploadLogo(logoImage);
       allocateFields();
+      uploadDisplayUniforms();
       render();
       contextLost = false;
       stats.status = 'ready';
