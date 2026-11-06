@@ -1338,7 +1338,13 @@ export function mount (container, options = {}) {
     pendingQuery = null;
   }
 
-  function frame (now) {
+  // One clock for every timestamp. requestAnimationFrame's own timestamp can
+  // lag performance.now() by however long the document was hidden (a
+  // display:none iframe stops its animation clock), and every restart
+  // stamps lastDraw/lastStep with performance.now(). Comparing the two made
+  // `now - lastDraw` permanently negative, so the loop skipped every frame.
+  function frame () {
+    const now = performance.now();
     rafId = 0;
     if (!shouldRun()) return;
     const active = now - lastInteraction < ACTIVE_WINDOW_MS;

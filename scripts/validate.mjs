@@ -118,7 +118,7 @@ for (const token of [
   'border-radius: var(--sr-radius-banner)',
   'background: transparent',
   'FluidHeader.mount',
-  'v=final-6',
+  'v=final-8',
   'velocityDissipation: 4.65',
   'viscosity: 1.5',
   'logoWidth: 0.44',
@@ -147,13 +147,13 @@ for (const removed of ['Copy Config', '>Reset<', '>Pause<', 'Logo Treatment', 'd
 }
 
 const preview = await readFile('index.html', 'utf8');
-for (const token of ['SR008 Banner Treatment', 'Copy Embed Code', 'Download CDN Package', 'banner.html?v=final-6']) {
+for (const token of ['SR008 Banner Treatment', 'Copy Embed Code', 'Download CDN Package', 'banner.html?v=final-8']) {
   if (!preview.includes(token)) throw new Error(`preview missing ${token}`);
 }
 
 const wordpressEmbed = await readFile('wordpress/embed-snippet.html', 'utf8');
-if (!wordpressEmbed.includes('banner.html?v=final-6')) {
-  throw new Error('WordPress embed is not pinned to final-6');
+if (!wordpressEmbed.includes('banner.html?v=final-8')) {
+  throw new Error('WordPress embed is not pinned to final-8');
 }
 
 

@@ -4,7 +4,7 @@
   const code = document.getElementById('embed-code');
   const button = document.getElementById('copy-embed');
   const status = document.getElementById('copy-status');
-  const bannerUrl = new URL('banner.html?v=final-6', window.location.href).href.split('#')[0];
+  const bannerUrl = new URL('banner.html?v=final-8', window.location.href).href.split('#')[0];
   const embed = `<iframe
   src="${bannerUrl}"
   title="SR008 interactive Chrome banner with animated liquid-metal edge"
